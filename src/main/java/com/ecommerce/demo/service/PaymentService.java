@@ -2,10 +2,12 @@ package com.ecommerce.demo.service;
 
 import com.ecommerce.demo.dto.payment.PaymentRequest;
 import com.ecommerce.demo.dto.payment.PaymentResponse;
+import com.ecommerce.demo.exception.ResourceNotFoundException;
 import com.ecommerce.demo.model.Order;
 import com.ecommerce.demo.model.Payment;
 import com.ecommerce.demo.repository.OrderRepository;
 import com.ecommerce.demo.repository.PaymentRepository;
+import com.ecommerce.demo.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,14 +21,16 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
+
 
     @Transactional
     public PaymentResponse makePayment(PaymentRequest request) {
         Order order = orderRepository.findById(request.getOrderId())
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + request.getOrderId()));
 
         // In a real scenario, you might have more complex logic to check if payment is already made.
-        
+
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setUser(order.getUser());
@@ -46,12 +50,18 @@ public class PaymentService {
     }
 
     public List<PaymentResponse> getPaymentsByUser(String userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
         return paymentRepository.findByUserUserId(userId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     public List<PaymentResponse> getPaymentsByOrder(String orderId) {
+        orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
         return paymentRepository.findByOrderOrderId(orderId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

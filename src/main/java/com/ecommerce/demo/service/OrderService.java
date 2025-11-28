@@ -1,8 +1,7 @@
 package com.ecommerce.demo.service;
 
-
-
 import com.ecommerce.demo.dto.order.*;
+import com.ecommerce.demo.exception.ResourceNotFoundException;
 import com.ecommerce.demo.model.Order;
 import com.ecommerce.demo.model.OrderItem;
 import com.ecommerce.demo.model.Product;
@@ -28,7 +27,7 @@ public class OrderService {
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + request.getUserId()));
 
         Order order = new Order();
         order.setUser(user);
@@ -38,7 +37,7 @@ public class OrderService {
 
         List<OrderItem> orderItems = request.getItems().stream().map(itemReq -> {
             Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + itemReq.getProductId()));
 
             if (product.getPQuantity() < itemReq.getQuantity()) {
                 throw new RuntimeException("Insufficient quantity for product: " + product.getPname());
@@ -69,6 +68,22 @@ public class OrderService {
         return mapToResponse(order);
     }
 
+    public OrderResponse getOrderById(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+        return mapToResponse(order);
+    }
+
+    public List<OrderResponse> getOrdersByUser(String userId) {
+        // First check if user exists
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        return orderRepository.findByUserUserId(userId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private OrderResponse mapToResponse(Order order) {
         OrderResponse response = new OrderResponse();
         response.setOrderId(order.getOrderId());
@@ -90,17 +105,5 @@ public class OrderService {
         response.setItems(itemResponses);
 
         return response;
-    }
-
-    public List<OrderResponse> getOrdersByUser(String userId) {
-        return orderRepository.findByUserUserId(userId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public OrderResponse getOrderById(String orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
-        return mapToResponse(order);
     }
 }

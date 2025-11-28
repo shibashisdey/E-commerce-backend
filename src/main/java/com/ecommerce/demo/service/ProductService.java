@@ -3,6 +3,7 @@ package com.ecommerce.demo.service;
 
 import com.ecommerce.demo.dto.product.ProductCreateRequest;
 import com.ecommerce.demo.dto.product.ProductResponse;
+import com.ecommerce.demo.exception.ResourceNotFoundException;
 import com.ecommerce.demo.model.Product;
 import com.ecommerce.demo.model.Seller;
 import com.ecommerce.demo.repository.ProductRepository;
@@ -24,7 +25,7 @@ public class ProductService {
     @Transactional
     public ProductResponse addProduct(ProductCreateRequest request) {
         Seller seller = sellerRepository.findById(request.getSellerId())
-                .orElseThrow(() -> new RuntimeException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with ID: " + request.getSellerId()));
 
         Product product = Product.builder()
                 .pname(request.getPname())
@@ -52,7 +53,7 @@ public class ProductService {
 
     public ProductResponse getProductById(String productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found with ID: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
         return mapToResponse(product);
     }
 
