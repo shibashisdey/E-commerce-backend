@@ -34,12 +34,38 @@ public class EmailVerificationService {
     private String verificationUrl;
 
     public void sendVerificationEmail(User user) {
-        // For testing purposes, we'll bypass email sending and auto-verify the user.
-        // In a real application, you would generate a token and send an email.
-        user.setIsVerified(true);
-        user.setVerificationToken(null);
-        user.setVerificationTokenExpiry(null);
+        // Generate token and expiry
+        String token = UUID.randomUUID().toString();
+        user.setVerificationToken(token);
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(tokenExpiryMinutes));
         userRepository.save(user);
+
+        String to = user.getEmail();
+        String link = verificationUrl + token;
+
+        String body = "Dear " + user.getFullName() + ",\n\n"
+                + "Please verify your email by clicking the link below:\n"
+                + link + "\n\n"
+                + "This link will expire in " + tokenExpiryMinutes + " minutes.\n\n"
+                + "Thank you,\nYour Ecommerce Team";
+
+        sendEmail(to, emailSubject, body);
+    }
+
+    private void sendEmail(String to, String subject, String body) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message);
+
+            helper.setFrom(emailFrom);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send verification email", e);
+        }
     }
 
     /*
@@ -61,7 +87,28 @@ public class EmailVerificationService {
     */
 
     public boolean verifyUser(String token) {
-        // Bypassed for testing.
+        Optional<User> optionalUser = userRepository.findByVerificationToken(token);
+
+        if (optionalUser.isEmpty()) {
+            return false;
+        }
+
+        User user = optionalUser.get();
+
+        if (user.getIsVerified()) {
+            return false;
+        }
+
+        if (user.getVerificationTokenExpiry() == null ||
+                user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
+            return false;
+        }
+
+        user.setIsVerified(true);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiry(null);
+        userRepository.save(user);
+
         return true;
     }
 }

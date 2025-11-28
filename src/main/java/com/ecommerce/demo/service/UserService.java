@@ -1,11 +1,13 @@
 package com.ecommerce.demo.service;
 
+import com.ecommerce.demo.dto.AuthResponse;
 import com.ecommerce.demo.dto.user.*;
 import com.ecommerce.demo.exception.AuthenticationException;
 import com.ecommerce.demo.exception.DuplicateResourceException;
 import com.ecommerce.demo.exception.ResourceNotFoundException;
 import com.ecommerce.demo.model.User;
 import com.ecommerce.demo.repository.UserRepository;
+import com.ecommerce.demo.security.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,7 +18,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
+    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
@@ -52,7 +54,7 @@ public class UserService {
         return emailVerificationService.verifyUser(token);
     }
 
-    public UserResponse loginUser(UserLoginRequest request) {
+    public AuthResponse loginUser(UserLoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AuthenticationException("Invalid username or password."));
 
@@ -64,7 +66,9 @@ public class UserService {
             throw new AuthenticationException("Email has not been verified.");
         }
 
-        return mapToResponse(user);
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+
+        return new AuthResponse(token, user.getUserId(), user.getUsername(), user.getEmail(), user.getRole());
     }
 
     public UserResponse getUserById(String userId) {

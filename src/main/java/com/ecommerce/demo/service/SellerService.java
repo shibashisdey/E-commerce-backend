@@ -1,5 +1,6 @@
 package com.ecommerce.demo.service;
 
+import com.ecommerce.demo.dto.AuthResponse;
 import com.ecommerce.demo.dto.seller.SellerLoginRequest;
 import com.ecommerce.demo.dto.seller.SellerRegisterRequest;
 import com.ecommerce.demo.dto.seller.SellerResponse;
@@ -8,6 +9,7 @@ import com.ecommerce.demo.exception.DuplicateResourceException;
 import com.ecommerce.demo.exception.ResourceNotFoundException;
 import com.ecommerce.demo.model.Seller;
 import com.ecommerce.demo.repository.SellerRepository;
+import com.ecommerce.demo.security.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class SellerService {
-
+    private final JwtUtil jwtUtil;
     private final SellerRepository sellerRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -38,7 +40,7 @@ public class SellerService {
                 .email(request.getEmail())
                 .Sphone(request.getSphone())
                 .gstNumber(request.getGstNumber())
-                .isVerified(false) // Sellers might need a verification process
+                .isVerified(true)  // Sellers might need a verification process
                 .build();
 
         sellerRepository.save(seller);
@@ -46,20 +48,36 @@ public class SellerService {
         return mapToResponse(seller);
     }
 
-    public SellerResponse loginSeller(SellerLoginRequest request) {
+    public AuthResponse loginSeller(SellerLoginRequest request) {
         Seller seller = sellerRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AuthenticationException("Invalid username or password."));
 
         if (!passwordEncoder.matches(request.getPassword(), seller.getPassword())) {
             throw new AuthenticationException("Invalid username or password.");
         }
-        
+
         if (seller.getIsVerified() == null || !seller.getIsVerified()) {
             throw new AuthenticationException("Seller account is not verified.");
         }
 
-        return mapToResponse(seller);
+        String token = jwtUtil.generateToken(seller.getUsername(), "SELLER");
+
+        return new AuthResponse(token, seller.getSellerId(), seller.getUsername(), seller.getEmail(), "SELLER");
     }
+//    public SellerResponse loginSeller(SellerLoginRequest request) {
+//        Seller seller = sellerRepository.findByUsername(request.getUsername())
+//                .orElseThrow(() -> new AuthenticationException("Invalid username or password."));
+//
+//        if (!passwordEncoder.matches(request.getPassword(), seller.getPassword())) {
+//            throw new AuthenticationException("Invalid username or password.");
+//        }
+//
+//        if (seller.getIsVerified() == null || !seller.getIsVerified()) {
+//            throw new AuthenticationException("Seller account is not verified.");
+//        }
+//
+//        return mapToResponse(seller);
+//    }
 
     public SellerResponse getSellerById(String sellerId) {
         Seller seller = sellerRepository.findById(sellerId)

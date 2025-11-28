@@ -1,5 +1,6 @@
 package com.ecommerce.demo.controller;
 
+import com.ecommerce.demo.dto.AuthResponse;
 import com.ecommerce.demo.dto.seller.SellerRegisterRequest;
 import com.ecommerce.demo.dto.seller.SellerResponse;
 import com.ecommerce.demo.dto.seller.SellerLoginRequest;
@@ -23,9 +24,9 @@ public class SellerController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<SellerResponse> loginSeller(@Valid @RequestBody SellerLoginRequest request) {
-        SellerResponse seller = sellerService.loginSeller(request);
-        return ResponseEntity.ok(seller);
+    public ResponseEntity<AuthResponse> loginSeller(@Valid @RequestBody SellerLoginRequest request) {
+        AuthResponse response = sellerService.loginSeller(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{sellerId}")

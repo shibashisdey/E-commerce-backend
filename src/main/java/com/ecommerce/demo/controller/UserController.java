@@ -1,5 +1,6 @@
 package com.ecommerce.demo.controller;
 
+import com.ecommerce.demo.dto.AuthResponse;
 import com.ecommerce.demo.dto.user.UserLoginRequest;
 import com.ecommerce.demo.dto.user.UserRegisterRequest;
 import com.ecommerce.demo.dto.user.UserResponse;
@@ -25,9 +26,9 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> loginUser(@Valid @RequestBody UserLoginRequest request) {
-        UserResponse user = userService.loginUser(request);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<AuthResponse> loginUser(@Valid @RequestBody UserLoginRequest request) {
+        AuthResponse response = userService.loginUser(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/verify")
